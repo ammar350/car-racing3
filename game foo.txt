@@ -1,0 +1,155 @@
+import pygame
+import random
+
+# Initialize
+pygame.init()
+
+# Screen
+SCREEN_WIDTH = 400
+SCREEN_HEIGHT = 600
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("Car Racing Game")
+
+# Colors
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+GRAY = (100, 100, 100)
+GREEN = (0, 200, 0)
+RED = (255, 0, 0)
+
+# Clock
+clock = pygame.time.Clock()
+
+# Load Car Images
+player_car_img = pygame.Surface((50, 100))
+player_car_img.fill(RED)
+
+enemy_car_img = pygame.Surface((50, 100))
+enemy_car_img.fill(BLACK)
+
+# Fonts
+font = pygame.font.SysFont(None, 40)
+big_font = pygame.font.SysFont(None, 70)
+
+# Road Lines (scrolling)
+road_line_width = 10
+road_line_height = 50
+road_line_gap = 20
+
+def create_road_lines():
+    lines = []
+    for i in range(0, SCREEN_HEIGHT, road_line_height + road_line_gap):
+        lines.append(pygame.Rect(SCREEN_WIDTH//2 - road_line_width//2, i, road_line_width, road_line_height))
+    return lines
+
+def create_enemy_cars():
+    enemies = []
+    for _ in range(3):
+        enemy = enemy_car_img.get_rect()
+        enemy.x = random.choice([120, 180, 240])
+        enemy.y = random.randint(-600, -100)
+        enemies.append(enemy)
+    return enemies
+
+def draw_road():
+    screen.fill(GREEN)
+    pygame.draw.rect(screen, GRAY, (100, 0, 200, SCREEN_HEIGHT))
+
+def draw_road_lines(road_lines):
+    for line in road_lines:
+        pygame.draw.rect(screen, WHITE, line)
+
+def move_road_lines(road_lines):
+    for line in road_lines:
+        line.y += 5
+        if line.y > SCREEN_HEIGHT:
+            line.y = -road_line_height
+
+def move_enemies(enemy_cars, speed):
+    global score
+    for enemy in enemy_cars:
+        enemy.y += speed
+        if enemy.y > SCREEN_HEIGHT:
+            enemy.y = random.randint(-600, -100)
+            enemy.x = random.choice([120, 180, 240])
+            score += 1
+
+def check_collision(player_car, enemy_cars):
+    for enemy in enemy_cars:
+        if player_car.colliderect(enemy):
+            return True
+    return False
+
+def show_game_over():
+    over_text = big_font.render("GAME OVER", True, RED)
+    restart_text = font.render("Press R to Restart", True, WHITE)
+    quit_text = font.render("Press Q to Quit", True, WHITE)
+
+    screen.blit(over_text, (SCREEN_WIDTH//2 - over_text.get_width()//2, SCREEN_HEIGHT//2 - 100))
+    screen.blit(restart_text, (SCREEN_WIDTH//2 - restart_text.get_width()//2, SCREEN_HEIGHT//2))
+    screen.blit(quit_text, (SCREEN_WIDTH//2 - quit_text.get_width()//2, SCREEN_HEIGHT//2 + 50))
+    pygame.display.update()
+
+# Game Start
+def game_loop():
+    global score
+    score = 0
+    player_car = player_car_img.get_rect()
+    player_car.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT - 120)
+    enemy_cars = create_enemy_cars()
+    road_lines = create_road_lines()
+    enemy_speed = 5
+
+    running = True
+    game_over = False
+
+    while running:
+        clock.tick(60)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+
+        if not game_over:
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_LEFT] and player_car.left > 100:
+                player_car.x -= 5
+            if keys[pygame.K_RIGHT] and player_car.right < 300:
+                player_car.x += 5
+
+            move_road_lines(road_lines)
+            move_enemies(enemy_cars, enemy_speed)
+
+            if check_collision(player_car, enemy_cars):
+                game_over = True
+
+            draw_road()
+            draw_road_lines(road_lines)
+            screen.blit(player_car_img, player_car)
+            for enemy in enemy_cars:
+                screen.blit(enemy_car_img, enemy)
+
+            # Score
+            score_text = font.render(f"Score: {score}", True, WHITE)
+            screen.blit(score_text, (10, 10))
+
+            pygame.display.update()
+
+        else:
+            draw_road()
+            draw_road_lines(road_lines)
+            screen.blit(player_car_img, player_car)
+            for enemy in enemy_cars:
+                screen.blit(enemy_car_img, enemy)
+            show_game_over()
+
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_r]:
+                game_loop()
+            if keys[pygame.K_q]:
+                pygame.quit()
+                quit()
+
+# Start the game
+game_loop()
